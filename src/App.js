@@ -41,8 +41,6 @@ function App() {
  
 
   const handleResultClick = () =>{
-
-      console.log(allAnswers)
       setGenerateResult(true)
 
   }
@@ -84,8 +82,6 @@ function App() {
 
             setCenter((prevCenter) => {
               if (prevCenter.length === 0) {
-                console.log("===========Center========");
-                console.log([noseTip[0], noseTip[1]]);
                 
                 return [noseTip[0], noseTip[1]];
               } else {
@@ -147,8 +143,6 @@ function App() {
         }
 
         
-
-        console.log(center[0][0], center[0][1], x_max, y_max)
         flag = Math.abs(center[0][0]- x_max) < Math.abs(center[0][1] - y_max)
 
           setCurrAnswer(flag ? 'Yes' : 'No');
@@ -163,9 +157,6 @@ function App() {
       else{
         setCurrAnswer('')
         setQuestionDisplayed(false)
-      }
-      if(nosePoint.length === 0){
-        console.log("======================== Emptied ===============")
       }
 
   }
