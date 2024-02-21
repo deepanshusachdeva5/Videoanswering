@@ -37,8 +37,45 @@
   }
 }
 
+.webcam-container{
+
+    margin-left: 7%;
+
+}
+
 .webcam{
 
-    margin-top: 5%;
+    margin-top: 1%;
 
+}
+.next-button{
+
+    background-color: lightgreen;
+    width: 150px;
+    height: 100px;
+}
+
+.next-button:hover{
+
+      cursor: pointer;
+
+}
+
+.button-text{
+
+    color: white;
+
+}
+
+.check-Result{
+
+    background-color: lightblue;
+    height: 50px;
+    border-radius: 7%;
+
+}
+
+.check-Result:hover{
+
+  cursor: pointer;
 }

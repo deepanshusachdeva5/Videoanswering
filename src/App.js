@@ -6,7 +6,7 @@ import Webcam from 'react-webcam'
 import { useRef, useState, useEffect } from 'react';
 import Question from './components/question';
 import questions from './questions.json'
-
+import ResultTable from './components/result';
 
 function App() {
   const webcamRef = useRef(null)
@@ -15,17 +15,37 @@ function App() {
 
   const [nosePoint, setNosePoint] = useState([]);
   const [faceDetected, setFaceDetected] = useState(false);
+  const [loaded, setLoaded] = useState(false)
 
+
+  const [center, setCenter] = useState([])
   const [currentIndex, setCurrentIndex] =  useState(0);
   const [currAnswer, setCurrAnswer] = useState('')
   const [questionDisplayed, setQuestionDisplayed] = useState(true)
+  const [allAnswers, setAllAnswers] = useState([])
+  const [checkResult, setCheckResults] = useState(false)
+  const [GenerateResult, setGenerateResult] = useState(false)
+  const Next = "Submit"
+  const Loading = "Loading the Questions for you! Please Wait..."
+
+  const [countdown, setCountdown] = useState(30);
+
+  useEffect(()=>{
 
 
-  // useEffect(()=>{
-  //   setNosePoint([])
+    if(currAnswer!== ""){
+      setAllAnswers((prevAnswers)=> [...prevAnswers, currAnswer])
+    }
 
-  // },[currAnswer] )
+  }, [currAnswer])
+ 
 
+  const handleResultClick = () =>{
+
+      console.log(allAnswers)
+      setGenerateResult(true)
+
+  }
   const runFaceMesh = async() => {
 
       const net = await facemesh.load({
@@ -54,18 +74,26 @@ function App() {
         canvasRef.current.height = videoHeight
 
         const face = await net.estimateFaces(video)
-        // console.log(face)
-        // console.log(face[0].faceInViewConfidence)
-        if(face[0].faceInViewConfidence >=0.9){
+        if(typeof(face[0]) !== 'undefined' && face[0].faceInViewConfidence >=0.9){
 
           
           const noseTip = face[0].annotations.noseTip;
     
-          // console.log(noseTip)
-          // Update the nosePoint state with the new noseTip coordinates
+
+          if (center.length === 0 && noseTip.length !== 0) {
+
+            setCenter((prevCenter) => {
+              if (prevCenter.length === 0) {
+                console.log("===========Center========");
+                console.log([noseTip[0], noseTip[1]]);
+                
+                return [noseTip[0], noseTip[1]];
+              } else {
+                return prevCenter;
+              }
+            });
+          }
           setNosePoint((prevNosePoint) => {
-            // console.log("======================")
-            // console.log(noseTip)
             const newNosePoint = [...prevNosePoint, noseTip];
     
             // Limit the array length to 100
@@ -78,120 +106,22 @@ function App() {
           });
           
         }
+        if(nosePoint.length >=30){
+          setLoaded(true)
+        }
 
-        // console.log(nosePoint.length)
-        
-        // if(nosePoint.length >=5){
 
-        //   const [started, x_change, y_change] = checkMovementStart()
-        //   // console.log(started, x_change, y_change)
-        //   if(started){
-        //       if(x_change > y_change){
-        //         setCurrAnswer('No')
-        //       }
-        //       else{
-        //         setCurrAnswer('Yes')
-        //       }
-              
-
-        //   }
-        // }
         
 
       }
 
   }
 
-
-
-  const checkMovementStop = () =>{
-
-    var x_change = false
-    var y_change = false
-
-    var x_min = 10000
-    var x_max = 0
-
-    var y_min = 10000
-    var y_max = 0
-    
-    for(var i = 0;i < 5;i++){
-        if(nosePoint[i][0][1] < y_min){
-
-            y_min = nosePoint[i][0][1]
-        }
-        if(nosePoint[i][0][1] > y_max){
-
-          y_max = nosePoint[i][0][1]
-        }
-        if(nosePoint[i][0][0] < x_min){
-
-        x_min = nosePoint[i][0][0]
-      }
-      if(nosePoint[i][0][0] > x_max){
-
-        x_max = nosePoint[i][0][0]
-      }
-
-    }
-    x_change = Math.abs(x_min - x_max) <=10
-    y_change = Math.abs(y_min - y_max) <=10
-
-    return x_change && y_change
-
-
-  }
-  const checkMovementStart= () =>{
-
-      var x_change = false
-      var y_change = false
-
-      var x_min = 10000
-      var x_max = 0
-
-      var y_min = 10000
-      var y_max = 0
-      
-      for(var i = 0;i < nosePoint.length;i++){
-          if(nosePoint[i][0][1] < y_min){
-
-              y_min = nosePoint[i][0][1]
-          }
-          if(nosePoint[i][0][1] > y_max){
-
-            y_max = nosePoint[i][0][1]
-          }
-          if(nosePoint[i][0][0] < x_min){
-
-          x_min = nosePoint[i][0][0]
-        }
-        if(nosePoint[i][0][0] > x_max){
-
-          x_max = nosePoint[i][0][0]
-        }
-
-      }
-      x_change = Math.abs(x_min - x_max) >10
-      y_change = Math.abs(y_min - y_max) >10
-
-      return [x_change || y_change, Math.abs(x_min - x_max), Math.abs(y_min - y_max)]
-
-  }
-
-//   const handleNextClick = ()=>{
-
-//     setCurrentIndex((prevIndex) => prevIndex + 1);
-//     setCurrAnswer('');
-//     setNosePoint([])
-//     setQuestionDisplayed(false)
-    
-// }
   const handleNextClick = ()=>{
 
       
-      if(nosePoint.length >=20){
+      if(nosePoint.length >=30){
 
-        //console.log(lastThreePoints)
         var flag = true;
         var x_max = 0;
         var x_min = 100000;
@@ -199,8 +129,7 @@ function App() {
         var y_max = 0;
         var y_min = 100000;
 
-        // console.log(nosePoint)
-        for(var i = nosePoint.length-1; i>nosePoint.length-20 ;i--){
+        for(var i = nosePoint.length-1; i>nosePoint.length-30 ;i--){
 
             if(nosePoint[i][0][1]> y_max){
               y_max = nosePoint[i][0][1]
@@ -217,12 +146,15 @@ function App() {
 
         }
 
-        //console.log(Math.abs(max - min))
-        flag = Math.abs(x_max- x_min) < Math.abs(y_max - y_min)
+        
+
+        console.log(center[0][0], center[0][1], x_max, y_max)
+        flag = Math.abs(center[0][0]- x_max) < Math.abs(center[0][1] - y_max)
 
           setCurrAnswer(flag ? 'Yes' : 'No');
+          
           setTimeout(() => {
-            setCurrentIndex((prevIndex) => {if (prevIndex < 9){return prevIndex + 1}});
+            setCurrentIndex((prevIndex) => {if (prevIndex < 9){return prevIndex + 1} else{setCheckResults(true); setLoaded(false); return prevIndex}});
             setCurrAnswer('')
           }, 200);
           
@@ -232,27 +164,27 @@ function App() {
         setCurrAnswer('')
         setQuestionDisplayed(false)
       }
-      setNosePoint([])
       if(nosePoint.length === 0){
         console.log("======================== Emptied ===============")
       }
-      // runFaceMesh()
+
   }
 
   runFaceMesh()
-
+ 
   return (
     <div className="App">
       <header className="App-header">
 
         <div className='question-container'>
-            <Question question={questions[currentIndex]}></Question>
-            
-            <button className='next-button' onClick={handleNextClick}> Next</button>
+            {loaded && !checkResult  ? <div><Question question={questions[currentIndex]}></Question><button className='next-button' onClick={handleNextClick}><h2 className='button-text'>Next</h2></button><h2>You Answered: {currAnswer}</h2></div>: null }
+            {!loaded && !checkResult ? <div><h1>Loading the Questions, please wait!</h1><h2>Wait Time: 40 Seconds</h2></div>: null}
+            {checkResult && <button className='check-Result' onClick={handleResultClick}> Generate Result</button>}
         </div>
-        <h2>You Answered: {currAnswer}</h2>
-        <Webcam ref={webcamRef} className='webcam'></Webcam>
-        <canvas ref={canvasRef} className='canvas'></canvas>
+        
+        { !checkResult && <div className='webcam-container'><Webcam ref={webcamRef} className='webcam'></Webcam>
+        <canvas ref={canvasRef} className='canvas'></canvas></div>}
+        {GenerateResult && <ResultTable allAnswers={allAnswers} questions={questions} />}
         
       </header>
     </div>
