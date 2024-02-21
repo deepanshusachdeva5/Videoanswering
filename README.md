@@ -3,7 +3,7 @@
 git clone https://github.com/deepanshusachdeva5/Videoanswering
 
 ## Step2: Move inside the cloned repository
-cd videoanswering
+cd Videoanswering
 
 ## Step3: Build the Docker Image
 docker build -t videoanswering:1 . 
