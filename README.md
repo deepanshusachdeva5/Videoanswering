@@ -1,6 +1,6 @@
 # Installation
 ## Step1: Clone this repository using the command:
-git clone https://github.com/deepanshusachdeva5/Videoanswering
+git clone https://github.com/deepanshusachdeva5/Videoanswering.git
 
 ## Step2: Move inside the cloned repository
 cd Videoanswering
