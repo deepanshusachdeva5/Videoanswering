@@ -1,0 +1,19 @@
+.bordered-table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+  
+  .bordered-table th, .bordered-table td {
+    border: 1px solid #dddddd;
+    padding: 8px;
+    text-align: left;
+  }
+  
+  .bordered-table th {
+    background-color: #f2f2f2;
+  }
+  
+
+  th{
+    color: black;
+  }

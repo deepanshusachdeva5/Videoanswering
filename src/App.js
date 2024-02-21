@@ -30,18 +30,23 @@ function App() {
 
   const [countdown, setCountdown] = useState(30);
 
-  useEffect(()=>{
-
-
-    if(currAnswer!== ""){
-      setAllAnswers((prevAnswers)=> [...prevAnswers, currAnswer])
+  useEffect(() => {
+    if (currAnswer !== "") {
+      const timestamp = new Date(); // Get current timestamp
+      const formattedTimestamp = timestamp.toLocaleTimeString(); // Format timestamp as per your requirement
+  
+      setAllAnswers((prevAnswers) => [
+        ...prevAnswers,
+        { answer: currAnswer, timestamp: formattedTimestamp },
+      ]);
     }
-
-  }, [currAnswer])
+  }, [currAnswer]);
  
 
   const handleResultClick = () =>{
+      setAllAnswers((prevAnswers) => prevAnswers.slice(0, 10));
       setGenerateResult(true)
+      
 
   }
   const runFaceMesh = async() => {
@@ -76,8 +81,6 @@ function App() {
 
           
           const noseTip = face[0].annotations.noseTip;
-    
-
           if (center.length === 0 && noseTip.length !== 0) {
 
             setCenter((prevCenter) => {
@@ -113,53 +116,67 @@ function App() {
 
   }
 
-  const handleNextClick = ()=>{
 
-      
-      if(nosePoint.length >=30){
 
-        var flag = true;
-        var x_max = 0;
-        var x_min = 100000;
-
-        var y_max = 0;
-        var y_min = 100000;
-
-        for(var i = nosePoint.length-1; i>nosePoint.length-30 ;i--){
-
-            if(nosePoint[i][0][1]> y_max){
-              y_max = nosePoint[i][0][1]
-            }
-            if(nosePoint[i][0][1] < y_min){
-              y_min = nosePoint[i][0][1]
-            }
-            if(nosePoint[i][0][0]> x_max){
-              x_max = nosePoint[i][0][0]
-            }
-            if(nosePoint[i][0][0] < x_min){
-              x_min = nosePoint[i][0][0]
-            }
-
+  const handleNextClick = () => {
+    if (nosePoint.length >= 30) {
+      var flag = true;
+      var x_max = 0;
+      var x_min = 100000;
+      var y_max = 0;
+      var y_min = 100000;
+  
+      for (var i = nosePoint.length - 1; i > nosePoint.length - 30; i--) {
+        if (nosePoint[i][0][1] > y_max) {
+          y_max = nosePoint[i][0][1];
         }
-
-        
-        flag = Math.abs(center[0][0]- x_max) < Math.abs(center[0][1] - y_max)
-
-          setCurrAnswer(flag ? 'Yes' : 'No');
-          
-          setTimeout(() => {
-            setCurrentIndex((prevIndex) => {if (prevIndex < 9){return prevIndex + 1} else{setCheckResults(true); setLoaded(false); return prevIndex}});
-            setCurrAnswer('')
-          }, 200);
-          
-          setQuestionDisplayed(false)
+        if (nosePoint[i][0][1] < y_min) {
+          y_min = nosePoint[i][0][1];
+        }
+        if (nosePoint[i][0][0] > x_max) {
+          x_max = nosePoint[i][0][0];
+        }
+        if (nosePoint[i][0][0] < x_min) {
+          x_min = nosePoint[i][0][0];
+        }
       }
-      else{
-        setCurrAnswer('')
-        setQuestionDisplayed(false)
-      }
-
-  }
+  
+      flag = Math.abs(x_min - x_max) <  Math.abs(y_min - y_max)
+      console.log(x_min, x_max, y_min, y_max)
+  
+      setCurrAnswer((prevAnswer) => {
+        // Use the callback form to ensure you're working with the latest state
+        if (prevAnswer !== "") {
+          const timestamp = new Date();
+          const formattedTimestamp = timestamp.toLocaleTimeString();
+          setAllAnswers((prevAnswers) => [
+            ...prevAnswers,
+            { answer: prevAnswer, timestamp: formattedTimestamp },
+          ]);
+        }
+        return flag ? 'Yes' : 'No';
+      });
+  
+      setTimeout(() => {
+        setCurrAnswer("");
+        setCurrentIndex((prevIndex) => {
+          if (prevIndex < 9) {
+            return prevIndex + 1;
+            
+          } else {
+            setCheckResults(true);
+            setLoaded(false);
+            return prevIndex;
+          }
+        });
+        setQuestionDisplayed(false);
+      }, 200);
+    } else {
+      setCurrAnswer('');
+      setQuestionDisplayed(false);
+    }
+  };
+  
 
   runFaceMesh()
  
