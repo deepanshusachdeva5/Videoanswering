@@ -1,200 +1,166 @@
-import logo from './logo.svg';
-import './App.css';
+import { FaceMesh } from "@mediapipe/face_mesh";
+import React, { useRef, useEffect , useState} from "react";
 import * as tf from '@tensorflow/tfjs'
-import * as facemesh from '@tensorflow-models/facemesh'
-import Webcam from 'react-webcam'
-import { useRef, useState, useEffect } from 'react';
+import * as cam from "@mediapipe/camera_utils";
+import Webcam from "react-webcam";
+import './App.css'
 import Question from './components/question';
 import questions from './questions.json'
 import ResultTable from './components/result';
 
+
+
 function App() {
-  const webcamRef = useRef(null)
-  const canvasRef = useRef(null)
+  const webcamRef = useRef(null);
+  const canvasRef = useRef(null);
+  
 
+  const THRESHOLD = 0.90;
+  const [data, setData] = useState([])
 
-  const [nosePoint, setNosePoint] = useState([]);
-  const [faceDetected, setFaceDetected] = useState(false);
   const [loaded, setLoaded] = useState(false)
-
-
-  const [center, setCenter] = useState([])
-  const [currentIndex, setCurrentIndex] =  useState(0);
-  const [currAnswer, setCurrAnswer] = useState('')
-  const [questionDisplayed, setQuestionDisplayed] = useState(true)
-  const [allAnswers, setAllAnswers] = useState([])
   const [checkResult, setCheckResults] = useState(false)
   const [GenerateResult, setGenerateResult] = useState(false)
-  const Next = "Submit"
-  const Loading = "Loading the Questions for you! Please Wait..."
+  const [currentIndex, setCurrentIndex] =  useState(0);
+  const [currAnswer, setCurrAnswer] = useState('')
+  const [allAnswers, setAllAnswers] = useState([])
+  
+  const [model, setModel] = useState(null);
 
-  const [countdown, setCountdown] = useState(30);
+  var camera = null;
+  function onResults(results) {
+
+    const videoWidth = webcamRef.current.video.videoWidth;
+    const videoHeight = webcamRef.current.video.videoHeight;
+
+    
+    const landmarks = results.multiFaceLandmarks[0];
+    if (landmarks) {
+      // Append new points
+      const newPoints = landmarks.reduce((acc, point) => {
+        acc.push(point.x, point.y, point.z);
+        return acc;
+      }, []);
+
+      
+      // Append new points to data
+      setData(prevData => {
+        const updatedData = [...prevData, newPoints];
+        
+        // Keep only the last 30 entries
+        if (updatedData.length > 30) {
+          return updatedData.slice(updatedData.length - 30);
+        } else {
+          return updatedData;
+        }
+      });
+    }
+  }
 
   useEffect(() => {
-    if (currAnswer !== "") {
-      const timestamp = new Date(); // Get current timestamp
-      const formattedTimestamp = timestamp.toLocaleTimeString(); // Format timestamp as per your requirement
-  
-      setAllAnswers((prevAnswers) => [
-        ...prevAnswers,
-        { answer: currAnswer, timestamp: formattedTimestamp },
-      ]);
-    }
-  }, [currAnswer]);
- 
 
-  const handleResultClick = () =>{
-      setAllAnswers((prevAnswers) => prevAnswers.slice(0, 10));
-      setGenerateResult(true)
-      
-
-  }
-  const runFaceMesh = async() => {
-
-      const net = await facemesh.load({
-
-          inputResolution: {width: 640, height: 480},
-          scale: 0.8, 
-
-      })
-      
-      setInterval(()=>{detect(net)}, 100)
-
-
-  }
-
-  const detect = async(net)=>{
-
-      if(typeof(webcamRef.current !== "undefined") && webcamRef.current !== null && webcamRef.current.video.readyState === 4 ){
-        const video = webcamRef.current.video
-        const videoWidth = webcamRef.current.video.videoWidth
-        const videoHeight = webcamRef.current.video.videoHeight
-        
-        webcamRef.current.video.width = videoWidth
-        webcamRef.current.video.height = videoHeight
-        
-        canvasRef.current.width = videoWidth
-        canvasRef.current.height = videoHeight
-
-        const face = await net.estimateFaces(video)
-        if(typeof(face[0]) !== 'undefined' && face[0].faceInViewConfidence >=0.9){
-
-          
-          const noseTip = face[0].annotations.noseTip;
-          if (center.length === 0 && noseTip.length !== 0) {
-
-            setCenter((prevCenter) => {
-              if (prevCenter.length === 0) {
-                
-                return [noseTip[0], noseTip[1]];
-              } else {
-                return prevCenter;
-              }
-            });
-          }
-          setNosePoint((prevNosePoint) => {
-            const newNosePoint = [...prevNosePoint, noseTip];
     
-            // Limit the array length to 100
-            if (newNosePoint.length > 100) {
-              // Remove the first 10 elements
-              return newNosePoint.slice(10);
-            }
+
     
-            return newNosePoint;
-          });
-          
-        }
-        if(nosePoint.length >=30){
-          setLoaded(true)
-        }
+    const faceMesh = new FaceMesh({
+      locateFile: (file) => {
+        return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
+      },
+    });
 
+    faceMesh.setOptions({
+      maxNumFaces: 1,
+      minDetectionConfidence: 0.5,
+      minTrackingConfidence: 0.5,
+    });
 
-        
+    faceMesh.onResults(onResults);
 
-      }
-
-  }
-
-
-
-  const handleNextClick = () => {
-    if (nosePoint.length >= 30) {
-      var flag = true;
-      var x_max = 0;
-      var x_min = 100000;
-      var y_max = 0;
-      var y_min = 100000;
-  
-      for (var i = nosePoint.length - 1; i > nosePoint.length - 30; i--) {
-        if (nosePoint[i][0][1] > y_max) {
-          y_max = nosePoint[i][0][1];
-        }
-        if (nosePoint[i][0][1] < y_min) {
-          y_min = nosePoint[i][0][1];
-        }
-        if (nosePoint[i][0][0] > x_max) {
-          x_max = nosePoint[i][0][0];
-        }
-        if (nosePoint[i][0][0] < x_min) {
-          x_min = nosePoint[i][0][0];
-        }
-      }
-  
-      flag = Math.abs(x_min - x_max) <  Math.abs(y_min - y_max)
-      console.log(x_min, x_max, y_min, y_max)
-  
-      setCurrAnswer((prevAnswer) => {
-        // Use the callback form to ensure you're working with the latest state
-        if (prevAnswer !== "") {
-          const timestamp = new Date();
-          const formattedTimestamp = timestamp.toLocaleTimeString();
-          setAllAnswers((prevAnswers) => [
-            ...prevAnswers,
-            { answer: prevAnswer, timestamp: formattedTimestamp },
-          ]);
-        }
-        return flag ? 'Yes' : 'No';
+    if (
+      typeof(webcamRef.current) !== "undefined" &&
+      webcamRef.current !== null
+    ) {
+      camera = new cam.Camera(webcamRef.current.video, {
+        onFrame: async () => {
+          if(webcamRef.current !== null){
+          await faceMesh.send({ image: webcamRef.current.video });}
+        },
+        width: 640,
+        height: 480,
       });
-  
-      setTimeout(() => {
-        setCurrAnswer("");
-        setCurrentIndex((prevIndex) => {
-          if (prevIndex < 9) {
-            return prevIndex + 1;
-            
-          } else {
-            setCheckResults(true);
-            setLoaded(false);
-            return prevIndex;
-          }
-        });
-        setQuestionDisplayed(false);
-      }, 200);
-    } else {
-      setCurrAnswer('');
-      setQuestionDisplayed(false);
+      camera.start();
     }
-  };
-  
+  }, []);
 
-  runFaceMesh()
- 
+
+  const handleResultClick = ()=>{
+
+        setGenerateResult(true)
+
+  }
+  const handlePredictClick = async () =>{
+
+      console.log(model)
+      if(model != null){
+
+          const tensor = tf.tensor(data).expandDims()
+          const pred = await model.predict(tensor).data()
+          console.log(pred)
+
+          const maxIndex = tf.tensor1d(pred).argMax().dataSync()[0];
+
+          if(pred[maxIndex] >= THRESHOLD){
+            if(maxIndex ==0){
+              setCurrAnswer("Yes");
+            }
+            else{
+              setCurrAnswer("No");
+            }
+            const timestamp = new Date(); 
+            const formattedTimestamp = timestamp.toLocaleTimeString();
+            setAllAnswers((prevAnswers) => [
+              ...prevAnswers,
+              { answer: currAnswer, timestamp: formattedTimestamp },
+            ]);
+            if(currentIndex < 9){
+              setCurrentIndex((prev) => {return prev+1});
+            }
+            else{
+              setCheckResults(true);
+            }
+        }
+        
+
+
+      }
+
+  }
+
+  const handleLoadClick = async  () =>{
+
+    console.log("Model loading.....")
+    tf.loadLayersModel("https://raw.githubusercontent.com/deepanshusachdeva5/tfjs_Face_detector/main/model3/model.json").then((mdl)=> {setModel(mdl); setLoaded(true);}).catch((e)=> {console.log(e)})
+  }
+
+
   return (
-    <div className="App">
-      <header className="App-header">
+      <div className="App">
+        <header className="App-header">
+          <div className='question-container'>
+              {loaded && !checkResult  ? <div><Question question={questions[currentIndex]}></Question><button  onClick={handlePredictClick}>Predict</button><h2>You Answered: {currAnswer}</h2></div>: null }
+              {!loaded && !checkResult ? <div><button onClick={handleLoadClick}><h2>Load Questions</h2></button></div>: null}
+              {checkResult && <button className='check-Result' onClick={handleResultClick}> Generate Result</button>}
+          </div>
+          {!checkResult && <div className='webcam-container'><Webcam ref={webcamRef} className='webcam'></Webcam>
+              <canvas ref={canvasRef} className='canvas'></canvas></div>}
+          {GenerateResult && <ResultTable allAnswers={allAnswers} questions={questions} />}
 
-        <div className='question-container'>
-            {loaded && !checkResult  ? <div><Question question={questions[currentIndex]}></Question><button className='next-button' onClick={handleNextClick}><h2 className='button-text'>Next</h2></button><h2>You Answered: {currAnswer}</h2></div>: null }
-            {!loaded && !checkResult ? <div><h1>Loading the Questions, please wait!</h1><h2>Wait Time: 40 Seconds</h2></div>: null}
-            {checkResult && <button className='check-Result' onClick={handleResultClick}> Generate Result</button>}
-        </div>
-        
-        { !checkResult && <div className='webcam-container'><Webcam ref={webcamRef} className='webcam'></Webcam>
-        <canvas ref={canvasRef} className='canvas'></canvas></div>}
-        {GenerateResult && <ResultTable allAnswers={allAnswers} questions={questions} />}
-        
-      </header>
+            <div className="buttons" >
+              
+              
+            </div>
+        </header>
+      
     </div>
   );
 }
